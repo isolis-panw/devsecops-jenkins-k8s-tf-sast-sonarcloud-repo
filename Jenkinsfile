@@ -31,8 +31,19 @@ pipeline {
 	stage('Push') {
             steps {
                 script{
-                    docker.withRegistry('https://585217285269.dkr.ecr.us-east-2.amazonaws.com', 'ecr:us-east-2:aws-ecr-role') {
-                    app.push("latest")
+                    withEnv(["HOME=${WORKSPACE}"]) {
+                	sh """
+                    export DOCKER_CONFIG="${WORKSPACE}/.docker"
+                    
+                    echo "==> Authenticating with AWS ECR via Instance IAM Role..."
+                    aws ecr get-login-password --region us-east-2 | docker --config "${WORKSPACE}/.docker" login --username AWS --password-stdin 585217285269.dkr.ecr.us-east-2.amazonaws.com
+                    
+                    echo "==> Tagging Local Image..."
+                    docker tag asg:latest 585217285269.dkr.ecr.us-east-2.amazonaws.com/asg:latest
+                    
+                    echo "==> Pushing to AWS ECR..."
+                    docker --config "${WORKSPACE}/.docker" push 585217285269.dkr.ecr.us-east-2.amazonaws.com/asg:latest
+                	"""
                     }
                 }
             }
